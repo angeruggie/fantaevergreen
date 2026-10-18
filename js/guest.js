@@ -14,8 +14,8 @@
   function header(showSwitch) {
     const s = state.settings;
     return `<header class="top"><div class="brand">
-      <div class="brand-badge">30</div>
-      <div class="brand-text"><h1>${esc(s.titolo)}</h1><p>I 30 anni di ${esc(s.festeggiato)} 🎉</p></div></div>
+      ${badgeHtml(s.badge, 'brand-badge')}
+      <div class="brand-text"><h1>${esc(s.titolo)}</h1>${s.sottotitolo ? `<p>${esc(s.sottotitolo)}</p>` : ''}</div></div>
       ${showSwitch ? `<button class="btn btn-ghost btn-sm" id="switch">${me() ? `${icon('arrows-right-left')} Cambia` : `${icon('user-plus')} Chi sei?`}</button>` : ''}
     </header>`;
   }
@@ -24,7 +24,7 @@
   function renderPick() {
     const guests = [...state.guests].sort((a, b) => a.nome.localeCompare(b.nome));
     app.innerHTML = `${header(false)}
-      <div class="hero-30">30</div>
+      ${badgeHtml(state.settings.badge, 'hero-30')}
       <div class="welcome"><h2>Chi sei?</h2><p>Tocca il tuo nome per seguire i tuoi punti.</p></div>
       ${guests.length ? `<div class="guest-grid">${guests.map(g => `
         <button class="guest-pick" data-id="${g.id}"><span class="a">${esc(g.avatar)}</span><span class="n">${esc(g.nome)}</span></button>`).join('')}</div>`
@@ -52,7 +52,7 @@
       const mine = ranking.find(r => r.id === g.id);
       const bump = lastBalance !== null && lastBalance !== mine.punti;
       lastBalance = mine.punti;
-      balance = `<section class="card balance">
+      balance = `<section class="card balance" data-badge="${esc(state.settings.badge)}">
         <div class="who"><span class="av">${esc(g.avatar)}</span>${esc(g.nome)}</div>
         <div class="num ${bump ? 'bump' : ''} ${ptsClass(mine.punti)}">${mine.punti}</div>
         <div class="label">punti</div>

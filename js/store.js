@@ -24,7 +24,7 @@ const Store = (() => {
     const err = s.error || g.error || r.error || e.error;
     if (err) throw err;
     cache = {
-      settings: { festeggiato: s.data.festeggiato, titolo: s.data.titolo, classificaVisibile: s.data.classifica_visibile },
+      settings: { titolo: s.data.titolo, sottotitolo: s.data.sottotitolo ?? '', badge: s.data.badge ?? '🎉', classificaVisibile: s.data.classifica_visibile },
       guests: g.data, rules: r.data, events: e.data,
     };
     return cache;
@@ -43,7 +43,7 @@ const Store = (() => {
   function refresh() { clearTimeout(timer); timer = setTimeout(refreshNow, 150); }
 
   if (sb) {
-    sb.channel('fantatrentesimo')
+    sb.channel('fantaevergreen')
       .on('postgres_changes', { event: '*', schema: 'public' }, refresh)
       .subscribe(status => { if (status === 'SUBSCRIBED') refresh(); });
     // il telefono si riaccende o torna la rete → riallinea
@@ -84,7 +84,7 @@ const Store = (() => {
     deleteGuest: id => rpc('admin_delete_guest', { p_id: id }),
 
     saveSettings: patch => rpc('admin_save_settings', {
-      p_festeggiato: patch.festeggiato ?? null, p_titolo: patch.titolo ?? null, p_classifica_visibile: patch.classificaVisibile ?? null,
+      p_titolo: patch.titolo ?? null, p_sottotitolo: patch.sottotitolo ?? null, p_badge: patch.badge ?? null, p_classifica_visibile: patch.classificaVisibile ?? null,
     }),
     resetPoints: () => rpc('admin_reset_points'),
     resetAll: () => rpc('admin_reset_all'),

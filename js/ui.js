@@ -46,10 +46,44 @@ function modal({ title, body = '', okText = 'OK', cancelText = 'Annulla', danger
 const confirmBox = (title, text, okText = 'Conferma', danger = true) =>
   modal({ title, body: `<p class="muted">${text}</p>`, okText, danger }).then(r => r !== null);
 
-function avatarPicker(selected, name = 'avatar') {
-  return `<div class="avatar-grid">${AVATARS.map((a, i) => `
-    <label><input type="radio" name="${name}" value="${a}" ${a === selected || (!selected && i === 0) ? 'checked' : ''}><span>${a}</span></label>`).join('')}
+// Simbolo dell'evento (es. 30, 🎂): le emoji non usano il testo sfumato
+function badgeHtml(badge, cls) {
+  const t = String(badge ?? '').trim() || '🎉';
+  const emoji = !/[\p{L}\p{N}]/u.test(t);
+  return `<div class="${cls}${emoji ? ' is-emoji' : ''}${!emoji && [...t].length > 2 ? ' long' : ''}">${esc(t)}</div>`;
+}
+
+// Selettore emoji a categorie; si può anche scrivere un'emoji qualsiasi dalla tastiera
+function emojiPicker(selected, name, { maxlength = 16, placeholder = '' } = {}) {
+  const cats = Object.entries(EMOJI);
+  const start = Math.max(0, cats.findIndex(([, list]) => list.includes(selected)));
+  return `<div class="emoji-picker">
+    <input class="input emoji-input" name="${name}" maxlength="${maxlength}" required autocomplete="off" value="${esc(selected)}" placeholder="${esc(placeholder)}">
+    <p class="hint">Scegli qui sotto oppure scrivi un'emoji dalla tastiera</p>
+    <div class="emoji-tabs">${cats.map(([c, list], i) => `<button type="button" data-cat="${i}" class="${i === start ? 'on' : ''}" title="${c}">${list[0]}</button>`).join('')}</div>
+    ${cats.map(([c, list], i) => `<div class="emoji-grid" data-grid="${i}" ${i === start ? '' : 'hidden'}>
+      <div class="cat">${c}</div>
+      ${list.map(e => `<button type="button" data-emo="${e}" class="${e === selected ? 'on' : ''}">${e}</button>`).join('')}</div>`).join('')}
   </div>`;
+}
+
+document.addEventListener('click', e => {
+  const tab = e.target.closest('.emoji-tabs [data-cat]');
+  const pick = e.target.closest('.emoji-grid [data-emo]');
+  const root = (tab || pick)?.closest('.emoji-picker');
+  if (!root) return;
+  if (tab) {
+    root.querySelectorAll('[data-cat]').forEach(b => b.classList.toggle('on', b === tab));
+    root.querySelectorAll('.emoji-grid').forEach(g => { g.hidden = g.dataset.grid !== tab.dataset.cat; });
+  } else {
+    root.querySelector('.emoji-input').value = pick.dataset.emo;
+    markEmoji(root);
+  }
+});
+document.addEventListener('input', e => { if (e.target.matches('.emoji-input')) markEmoji(e.target.closest('.emoji-picker')); });
+function markEmoji(root) {
+  const v = root.querySelector('.emoji-input').value.trim();
+  root.querySelectorAll('[data-emo]').forEach(b => b.classList.toggle('on', b.dataset.emo === v));
 }
 
 // Esplosione di emoji (per i bonus)

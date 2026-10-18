@@ -1,5 +1,5 @@
 -- =====================================================================
--- FantaTrentesimo — script completo per Supabase
+-- FantaEvergreen — script completo per Supabase
 -- Incollalo in: Supabase → SQL Editor → New query → Run
 -- Si può rieseguire senza problemi (non cancella i dati esistenti).
 -- =====================================================================
@@ -13,10 +13,21 @@
 -- ---------- TABELLE ----------
 create table if not exists settings (
   id int primary key default 1 check (id = 1),
-  festeggiato text not null default 'Martina',
-  titolo text not null default 'FantaTrentesimo',
+  titolo text not null default 'FantaFesta',
+  sottotitolo text not null default '',
+  badge text not null default '🎉',     -- simbolo dell'evento: un numero (es. 30), una sigla o un'emoji
   classifica_visibile boolean not null default true
 );
+-- aggiornamento da FantaTrentesimo: il "festeggiato" diventa un sottotitolo libero
+alter table settings add column if not exists sottotitolo text not null default '';
+alter table settings add column if not exists badge text not null default '🎉';
+do $$
+begin
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'settings' and column_name = 'festeggiato') then
+    update settings set sottotitolo = 'I 30 anni di ' || festeggiato || ' 🎉', badge = '30' where sottotitolo = '';
+    alter table settings drop column festeggiato;
+  end if;
+end $$;
 
 create table if not exists admin_config (
   id int primary key default 1 check (id = 1),
@@ -65,13 +76,12 @@ select * from (values
   ('💃', 'Primo a ballare',     'Rompe il ghiaccio in pista',              10),
   ('🥂', 'Brindisi commosso',   'Discorso con lacrimuccia inclusa',        15),
   ('🎤', 'Discorso epico',      'Prende la parola davanti a tutti',        20),
-  ('📸', 'Selfie con Martina',  'Foto ricordo con la festeggiata',          5),
-  ('🎂', 'Voce da stadio',      'Canta “Tanti auguri” più forte di tutti', 10),
+  ('📸', 'Selfie di gruppo',    'Riunisce tutti per una foto ricordo',      5),
+  ('🎶', 'Voce da stadio',      'Canta più forte di tutti',                10),
   ('🍝', 'Scarpetta',           'Il piatto torna in cucina lucido',         5),
   ('🍷', 'Rovescia un drink',   'Tovaglia vittima innocente',              -5),
   ('⏰', 'Ritardatario',        'Arriva dopo l’antipasto',                -10),
-  ('📱', 'Telefono a tavola',   'Beccato a scrollare',                     -5),
-  ('👴', 'Battuta sull’età',    '“Eh, 30 anni… ormai sei vecchia”',       -10)
+  ('📱', 'Telefono a tavola',   'Beccato a scrollare',                     -5)
 ) as v(emoji, nome, descrizione, punti)
 where not exists (select 1 from rules);
 
@@ -181,13 +191,15 @@ begin
   delete from guests where id = p_id;   -- i suoi punti si cancellano a cascata
 end $$;
 
-create or replace function admin_save_settings(p_pin text, p_festeggiato text default null, p_titolo text default null, p_classifica_visibile boolean default null)
+drop function if exists admin_save_settings(text, text, text, boolean);   -- versione FantaTrentesimo
+create or replace function admin_save_settings(p_pin text, p_titolo text default null, p_sottotitolo text default null, p_badge text default null, p_classifica_visibile boolean default null)
 returns void language plpgsql security definer set search_path = public as $$
 begin
   perform _check_pin(p_pin);
   update settings set
-    festeggiato = coalesce(trim(p_festeggiato), festeggiato),
-    titolo = coalesce(trim(p_titolo), titolo),
+    titolo = coalesce(nullif(trim(p_titolo), ''), titolo),
+    sottotitolo = coalesce(trim(p_sottotitolo), sottotitolo),
+    badge = coalesce(nullif(trim(p_badge), ''), badge),
     classifica_visibile = coalesce(p_classifica_visibile, classifica_visibile)
   where id = 1;
 end $$;

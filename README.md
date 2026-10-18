@@ -1,6 +1,7 @@
-# FantaTrentesimo
+# FantaEvergreen
 
-Gioco a punti stile FantaSanremo per i 30 anni di Martina.
+Gioco a punti stile FantaSanremo per qualsiasi evento (compleanni, matrimoni, addii al celibato…).
+Titolo, sottotitolo e simbolo dell'evento si cambiano dall'admin, scheda **Evento**.
 
 - `index.html`: pagina per gli invitati, in sola lettura (classifica, ultimi punti, regolamento)
 - `admin.html`: area admin protetta da PIN (invitati, regole, assegnazione e annullamento punti, impostazioni)
@@ -15,6 +16,8 @@ Il sito è statico (HTML + JS, senza build) e usa **Supabase** come database con
    update admin_config set pin = 'IL-TUO-PIN' where id = 1;
    ```
 4. Inserisci Project URL e chiave publishable/anon in `js/config.js`. Sono chiavi pubbliche.
+
+Quando `schema.sql` cambia, rieseguilo per intero: aggiorna tabelle e funzioni senza cancellare i dati.
 
 ## Avvio in locale
 ```bash

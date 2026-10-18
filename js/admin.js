@@ -16,7 +16,7 @@
   function renderLogin() {
     nav.hidden = true; bar.innerHTML = '';
     app.innerHTML = `<form class="pin-wrap" id="pin">
-      <div class="hero-30" style="font-size:90px">30</div>
+      ${badgeHtml(state?.settings.badge, 'hero-30 small')}
       <h2>Area admin</h2><p class="muted" style="margin:0">Inserisci il PIN per gestire il gioco</p>
       <input class="input pin-input" name="pin" type="password" inputmode="numeric" autocomplete="off" required autofocus>
       <p class="error" id="err"></p>
@@ -34,7 +34,7 @@
   // ---------- struttura ----------
   function header() {
     const s = state.settings;
-    return `<header class="top"><div class="brand"><div class="brand-badge">30</div>
+    return `<header class="top"><div class="brand">${badgeHtml(s.badge, 'brand-badge')}
       <div class="brand-text"><h1>${esc(s.titolo)}</h1><p>Admin · ${state.guests.length} invitati</p></div></div>
       <a class="btn btn-ghost btn-sm" href="./" target="_blank">${icon('eye')} Vista</a></header>`;
   }
@@ -217,7 +217,7 @@
       okText: g ? 'Salva' : 'Aggiungi',
       cancelText: g ? 'Annulla' : 'Fine',
       body: `<label class="field"><span>Nome</span><input class="input" name="nome" maxlength="24" required value="${esc(g?.nome ?? '')}"></label>
-        <div class="field"><span>Emoji</span>${avatarPicker(g?.avatar ?? AVATARS[Math.floor(Math.random() * AVATARS.length)])}</div>`,
+        <div class="field"><span>Emoji</span>${emojiPicker(g?.avatar ?? AVATARS[Math.floor(Math.random() * AVATARS.length)], 'avatar')}</div>`,
     });
     if (!r) return;
     try {
@@ -253,16 +253,13 @@
   }
 
   async function ruleDialog(rule = null) {
-    const quick = ['🎉', '💃', '🥂', '🎤', '📸', '🎂', '🍾', '😂', '❤️', '🍷', '⏰', '📱', '🤦', '💤', '🔥', '👑'];
     const malus = rule && rule.punti < 0;
     const r = await modal({
       title: rule ? 'Modifica regola' : 'Nuova regola',
       okText: 'Salva',
       extraText: rule ? 'Elimina' : null,
       body: `
-        <div class="field"><span>Emoji</span>
-          <input class="input" name="emoji" id="emo" maxlength="8" required value="${esc(rule?.emoji ?? '🎉')}" style="font-size:26px;text-align:center;width:84px">
-          <div class="quick">${quick.map(q => `<button type="button" data-q="${q}">${q}</button>`).join('')}</div></div>
+        <div class="field"><span>Emoji</span>${emojiPicker(rule?.emoji ?? '🎉', 'emoji')}</div>
         <label class="field"><span>Nome</span><input class="input" name="nome" maxlength="40" required value="${esc(rule?.nome ?? '')}" placeholder="Es. Primo a ballare"></label>
         <label class="field"><span>Descrizione (facoltativa)</span><input class="input" name="descrizione" maxlength="80" value="${esc(rule?.descrizione ?? '')}"></label>
         <div class="pm-toggle">
@@ -270,7 +267,6 @@
           <label><input type="radio" name="tipo" value="-1" ${malus ? 'checked' : ''}><span class="m">${icon('minus-circle')} Malus</span></label>
         </div>
         <label class="field" style="margin:0"><span>Punti</span><input class="input" name="punti" type="number" inputmode="numeric" min="1" max="999" required value="${rule ? Math.abs(rule.punti) : ''}" placeholder="Es. 10"></label>`,
-      onOpen: d => d.querySelectorAll('[data-q]').forEach(b => b.onclick = () => { d.querySelector('#emo').value = b.dataset.q; }),
     });
     if (!r) return;
     if (r.__extra) return deleteRule(rule);
@@ -288,9 +284,10 @@
     app.innerHTML = `${header()}
       <div class="stack">
         <form class="card" id="setForm">
-          <h3 class="h-icon" style="margin-bottom:14px">${icon('cake')} La festa</h3>
-          <label class="field"><span>Nome della festeggiata</span><input class="input" name="festeggiato" maxlength="30" required value="${esc(s.festeggiato)}"></label>
-          <label class="field"><span>Titolo della serata</span><input class="input" name="titolo" maxlength="40" required value="${esc(s.titolo)}"></label>
+          <h3 class="h-icon" style="margin-bottom:14px">${icon('cake')} L’evento</h3>
+          <label class="field"><span>Titolo</span><input class="input" name="titolo" maxlength="40" required value="${esc(s.titolo)}" placeholder="Es. FantaMatrimonio"></label>
+          <label class="field"><span>Sottotitolo (facoltativo)</span><input class="input" name="sottotitolo" maxlength="60" value="${esc(s.sottotitolo)}" placeholder="Es. Le nozze di Anna e Luca 💍"></label>
+          <div class="field"><span>Simbolo: un numero, una sigla o un’emoji</span>${emojiPicker(s.badge, 'badge', { maxlength: 4, placeholder: 'Es. 30' })}</div>
           <button class="btn btn-primary btn-block">Salva</button>
         </form>
         <div class="card switch-row">
@@ -311,7 +308,7 @@
       </div>`;
 
     const f = document.getElementById('setForm');
-    f.onsubmit = async e => { e.preventDefault(); const d = Object.fromEntries(new FormData(f)); await Store.saveSettings({ festeggiato: d.festeggiato.trim(), titolo: d.titolo.trim() }); toast(`${icon('check-circle')} Salvato`); };
+    f.onsubmit = async e => { e.preventDefault(); const d = Object.fromEntries(new FormData(f)); await Store.saveSettings({ titolo: d.titolo.trim(), sottotitolo: d.sottotitolo.trim(), badge: d.badge.trim() }); toast(`${icon('check-circle')} Salvato`); };
     document.getElementById('vis').onchange = async e => {
       await Store.saveSettings({ classificaVisibile: e.target.checked });
       toast(e.target.checked ? `${icon('trophy')} Classifica svelata!` : `${icon('eye-slash')} Classifica nascosta`);
@@ -332,11 +329,13 @@
   // ---------- avvio e tempo reale ----------
   function onUpdate(s) {
     state = s;
+    document.title = `Admin · ${s.settings.titolo}`;
     if (!Store.isLogged()) return;
     if (tab === 'assegna' && document.getElementById('ruleGrid')) {
       renderAssignLists();
       app.querySelector('.brand-text p').textContent = `Admin · ${state.guests.length} invitati`;
       app.querySelector('.brand-text h1').textContent = state.settings.titolo;
+      app.querySelector('.brand-badge').outerHTML = badgeHtml(state.settings.badge, 'brand-badge');
       return;
     }
     // non ridisegnare mentre si sta scrivendo in un campo
@@ -347,7 +346,7 @@
     if (needsRender && !(app.contains(document.activeElement) && document.activeElement.matches('input:not([type=checkbox]), textarea'))) { needsRender = false; render(); }
   }, 0));
 
-  async function start() { state = await Store.get(); render(); }
+  async function start() { state = await Store.get(); document.title = `Admin · ${state.settings.titolo}`; render(); }
 
   // errori dal database (es. PIN cambiato, rete assente)
   window.addEventListener('unhandledrejection', e => {
